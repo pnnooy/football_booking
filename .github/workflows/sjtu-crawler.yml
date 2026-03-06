@@ -1,10 +1,8 @@
 name: SJTU体育场地数据同步
 
 on:
-  # 每15分钟执行一次
   schedule:
     - cron: '*/15 * * * *'
-  # 也可以手动触发
   workflow_dispatch:
 
 jobs:
@@ -23,20 +21,24 @@ jobs:
         run: |
           pip install playwright requests
           playwright install chromium --with-deps
-      
+
       - name: 创建输出目录
         run: mkdir -p output
-  
+
+      - name: 查找爬虫脚本位置
+        id: find-script
+        run: |
+          echo "script_path=$(find . -name 'sjtu_crawler_auto.py' -type f | head -1)" >> $GITHUB_OUTPUT
 
       - name: 运行爬虫脚本
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
-        run: python3 user_input_files/sjtu_crawler_auto.py
+        run: python3 ${{ steps.find-script.outputs.script_path }}
 
       - name: 上传数据作为artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: venue-data
-          path: output/all_venues_booking_data.json
+          path: $(find . -name "all_venues_booking_data.json" -type f | head -1)
